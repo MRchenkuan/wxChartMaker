@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>聊天记录制作工具</title>
+    <script src="js/js.js"></script>
+    <style>
+        html{font-size: 16px}
+        #inputbox{margin-bottom: 80px;height: 25rem}
+
+        .msgpop{font-size:4rem;width: 100%;height: 10rem;float: left;border: 1px solid grey;margin: 5px auto;}
+        .msgpop input{font-size: 4rem;padding: 0;text-align: center;border:none ;height: 100%}
+        .avt{font-size:4rem;height: 100%;width:18%;border: 1px solid grey;display: block;float: left;position: relative;color:grey}
+        .tar{font-size:4rem;height: 100%;width:18%;border: 1px solid grey;display: block;float: left}
+        .popinputbox{height: 100%;width:60%;display: block;float: left;border: 1px solid grey}
+        .avt input{width: 100%;height: 100%;position: absolute;top:0;left: 0;opacity: 0}
+    </style>
+</head>
+<body>
+<form id="inputbox">
+    <p style="font-size: 4rem;color:#ffab3e;margin-bottom: 10px">使用很简单：:</p>
+    <p style="font-size: 3rem;color:#2d324c;">1.填写聊天对象的名字，也可以是群名字<br>
+        2.选择手机显示时间,这样显得真实<br>
+        3.选择一条消息发送者的头像<br>
+        4.选择发送方<br>
+        5.填写具体的内容<br>
+        *消息最多可添加4条，不够再跟我说
+    </p>
+    <div class="msgpop">
+        1.名字<input id="name" placeholder="填写对方的名字" type="text" style="height: 90%;width: 70%">
+    </div>
+
+    <div class="msgpop">
+        2.时间<input id="time" placeholder="选择时间" type="time" style="height: 90%;width: 70%">
+    </div>
+
+    <div class="msgpop">
+        <span class='avt'>3.选头像<input id='file1' type='file'></span><select class='tar' id='tar1'><option value='me'>自己</option><option value='it'>对方</option></select><input id='text1' class='popinputbox' placeholder='聊天内容' type='text'>
+    </div>
+
+</form>
+
+<input style="width: 100%;font-size: 4rem;border: 1px grey solid;margin: 20px auto;" type="button" value="添加一条" onclick="addmsgbar()">
+
+<img id="img" src="#" style="width:100%;float: left">
+</body>
+
+<script>
+    var i=1;
+    var EDITING = false;
+    function addmsgbar(){
+        if(i>3){alert('说好4个呢，不会数数吗？');return false}
+        i++;
+        var box = document.getElementById('inputbox');
+        var div =document.createElement('div');
+        div.className = 'msgpop';
+        div.innerHTML="<span class='avt'>选择头像<input id='file"+i+"' type='file'></span><select class='tar' id='tar"+i+"'><option value='me'>自己</option><option value='it'>对方</option></select><input id='text"+i+"' class='popinputbox' placeholder='聊天内容' type='text'>";
+        box.appendChild(div);
+
+    }
+
+    function initinfo(){
+        var name = document.getElementById('name');
+        var time = document.getElementById('time');
+        var info = {};
+        var msgitem = [];
+        info.name = name.value;
+        info.time = time.value;
+        /*获取问题*/
+        var avts = document.getElementsByClassName('avt');
+        /*遍历所file*/
+        Array.prototype.some.call(avts,function(it,id,ar){
+            msgitem.push({
+                avt:it.getElementsByTagName('img')[0],
+                tar:it.parentNode.getElementsByClassName('tar')[0].value,
+                msg:it.parentNode.getElementsByClassName('popinputbox')[0].value
+            });
+        });
+        info.msgitems = msgitem;
+        return info;
+    }
+
+    /*为上传控件添加监听*/
+    var form = document.getElementById('inputbox');
+    form.addEventListener('click',function(e){
+        var target = e.target;
+        if(target.getAttribute('type')=='file'){
+            var reader = new FileReader();
+            reader.onload = function(){
+                if(target.parentNode.getElementsByTagName('img').length>0){
+                    target.parentNode.getElementsByTagName('img')[0].src = this.result;
+                }else{
+                    var img = new Image();
+                    img.src = this.result;
+                    img.setAttribute('style', 'width:100%;height:100%;position:absolute;top:0;left:0;z-index:-1');
+                    target.parentNode.appendChild(img);
+                }
+            };
+            target.addEventListener('change',function(){
+                reader.readAsDataURL(target.files[0]);
+            });
+        }
+    });
+
+    function refresh(defaultTag){
+        var infomation;
+        if(defaultTag){
+            console.log('defauletag');
+            infomation = {
+                name:'习主席',
+                time:'15:16',
+                msgitems:[
+                    {tar:'it',avt:(function(src){var img=new Image();img.src=src;return img})('./xjp.jpg'),msg:'小伙子你很有想法，我很看好你！跟着我干吧！'},
+                    {tar:'me',avt:(function(src){var img=new Image();img.src=src;return img})('./ck.jpeg'),msg:'谢谢主席，但是我想自己努力。'}
+                ]
+            }
+        }else{
+            infomation = initinfo();
+        }
+        obj.setOpstName(infomation.name);
+        obj.setSelfTime(infomation.time);
+        obj.clrMsg();
+        for(var i = 0;i<infomation.msgitems.length;i++){
+            obj.addMsg({
+                role:infomation.msgitems[i].tar,
+                avt:infomation.msgitems[i].avt,
+                msg:infomation.msgitems[i].msg
+            })
+        }
+        obj.addCanvasToImg(document.getElementById('img'));
+    }
+
+    /*为可编辑控件添加监听*/
+    form.addEventListener('change',function(e){
+
+        var target = e.target;
+        console.log(EDITING);
+        if(target.tagName=='INPUT'||target.tagName=='SELECT'){
+            //只有在编辑过非选择框的情况下，进入编辑状态，也就是说，直接编辑选择框是无效的
+            if(target.tagName!='SELECT'||EDITING==true){
+                EDITING=true;
+                refresh()
+            }
+        }
+    });
+
+    /*添加更新到img的监听*/
+    document.addEventListener('touchstart',function(){
+        if(EDITING){
+            refresh()
+        }else{
+            refresh(true);
+        }
+    });
+//    document.addEventListener('scroll',function(){
+//        if(EDITING){
+//            refresh()
+//        }else{
+//            refresh(true);
+//        }
+//    });
+
+
+    var obj = new WxChart();
+    obj.setOpstName('习主席');
+    obj.setSelfTime('15:16');
+    obj.addMsg({role:'it',avt:(function(src){var img=new Image();img.src=src;return img})('./xjp.jpg'),msg:'小伙子你很有想法，我很看好你！跟着我干吧！'});
+    obj.addMsg({role:'me',avt:(function(src){var img=new Image();img.src=src;return img})('./ck.jpeg'),msg:'谢谢主席，但是我想自己努力。'});
+    obj.init();
+    obj.addCanvasToImg(document.getElementById('img'))
+
+</script>
+</html>
